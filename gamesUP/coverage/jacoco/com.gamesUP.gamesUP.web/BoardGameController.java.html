@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BoardGameController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.web</a> &gt; <span class="el_source">BoardGameController.java</span></div><h1>BoardGameController.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.web;
+
+import com.gamesUP.gamesUP.domain.Author;
+import com.gamesUP.gamesUP.domain.BoardGame;
+import com.gamesUP.gamesUP.domain.Category;
+import com.gamesUP.gamesUP.domain.Publisher;
+import com.gamesUP.gamesUP.service.BoardGameService;
+import com.gamesUP.gamesUP.web.dto.BoardGameRequest;
+import com.gamesUP.gamesUP.web.dto.BoardGameResponse;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/api/v1/catalog/games&quot;)
+public class BoardGameController {
+
+    private final BoardGameService boardGameService;
+
+<span class="fc" id="L33">    public BoardGameController(BoardGameService boardGameService) {</span>
+<span class="fc" id="L34">        this.boardGameService = boardGameService;</span>
+<span class="fc" id="L35">    }</span>
+
+    @GetMapping
+    public List&lt;BoardGameResponse&gt; findAll(
+        @RequestParam(name = &quot;title&quot;, required = false) String title,
+        @RequestParam(name = &quot;q&quot;, required = false) String q
+    ) {
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">        String searchTerm = title != null ? title : q;</span>
+<span class="fc" id="L43">        return boardGameService.searchByTitle(searchTerm).stream().map(this::toResponse).toList();</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public BoardGameResponse findById(@PathVariable UUID id) {
+<span class="nc" id="L48">        return toResponse(boardGameService.findById(id));</span>
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public BoardGameResponse create(@RequestBody BoardGameRequest request) {
+<span class="fc" id="L54">        BoardGame created = boardGameService.create(toEntity(request));</span>
+<span class="fc" id="L55">        return toResponse(created);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public BoardGameResponse update(@PathVariable UUID id, @RequestBody BoardGameRequest request) {
+<span class="nc" id="L60">        BoardGame updated = boardGameService.update(id, toEntity(request));</span>
+<span class="nc" id="L61">        return toResponse(updated);</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+<span class="nc" id="L67">        boardGameService.delete(id);</span>
+<span class="nc" id="L68">    }</span>
+
+    private BoardGame toEntity(BoardGameRequest request) {
+<span class="fc" id="L71">        BoardGame game = new BoardGame();</span>
+<span class="fc" id="L72">        game.setTitle(request.title());</span>
+<span class="fc" id="L73">        game.setDescription(request.description());</span>
+<span class="fc" id="L74">        game.setPrice(request.price());</span>
+<span class="fc" id="L75">        game.setAverageRating(request.averageRating());</span>
+<span class="fc" id="L76">        game.setReleaseDate(request.releaseDate());</span>
+
+<span class="fc" id="L78">        Publisher publisher = new Publisher();</span>
+<span class="fc" id="L79">        publisher.setId(request.publisherId());</span>
+<span class="fc" id="L80">        game.setPublisher(publisher);</span>
+
+<span class="fc" id="L82">        Set&lt;Author&gt; authors = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (request.authorIds() != null) {</span>
+<span class="fc" id="L84">            request.authorIds().forEach(id -&gt; {</span>
+<span class="fc" id="L85">                Author author = new Author();</span>
+<span class="fc" id="L86">                author.setId(id);</span>
+<span class="fc" id="L87">                authors.add(author);</span>
+<span class="fc" id="L88">            });</span>
+        }
+<span class="fc" id="L90">        game.setAuthors(authors);</span>
+
+<span class="fc" id="L92">        Set&lt;Category&gt; categories = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">        if (request.categoryIds() != null) {</span>
+<span class="fc" id="L94">            request.categoryIds().forEach(id -&gt; {</span>
+<span class="fc" id="L95">                Category category = new Category();</span>
+<span class="fc" id="L96">                category.setId(id);</span>
+<span class="fc" id="L97">                categories.add(category);</span>
+<span class="fc" id="L98">            });</span>
+        }
+<span class="fc" id="L100">        game.setCategories(categories);</span>
+
+<span class="fc" id="L102">        return game;</span>
+    }
+
+    private BoardGameResponse toResponse(BoardGame game) {
+<span class="fc" id="L106">        Set&lt;UUID&gt; authorIds = game.getAuthors().stream().map(Author::getId).collect(Collectors.toSet());</span>
+<span class="fc" id="L107">        Set&lt;UUID&gt; categoryIds = game.getCategories().stream().map(Category::getId).collect(Collectors.toSet());</span>
+
+<span class="fc" id="L109">        return new BoardGameResponse(</span>
+<span class="fc" id="L110">            game.getId(),</span>
+<span class="fc" id="L111">            game.getTitle(),</span>
+<span class="fc" id="L112">            game.getDescription(),</span>
+<span class="fc" id="L113">            game.getPrice(),</span>
+<span class="fc" id="L114">            game.getAverageRating(),</span>
+<span class="fc" id="L115">            game.getReleaseDate(),</span>
+<span class="fc" id="L116">            game.getPublisher().getId(),</span>
+            authorIds,
+            categoryIds
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

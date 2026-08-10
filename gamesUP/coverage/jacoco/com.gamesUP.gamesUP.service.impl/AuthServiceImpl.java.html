@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.service.impl</a> &gt; <span class="el_source">AuthServiceImpl.java</span></div><h1>AuthServiceImpl.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.service.impl;
+
+import com.gamesUP.gamesUP.domain.UserAccount;
+import com.gamesUP.gamesUP.domain.UserRole;
+import com.gamesUP.gamesUP.repository.UserAccountRepository;
+import com.gamesUP.gamesUP.security.JwtTokenService;
+import com.gamesUP.gamesUP.security.RefreshTokenService;
+import com.gamesUP.gamesUP.service.AuthService;
+import com.gamesUP.gamesUP.web.dto.AuthLoginRequest;
+import com.gamesUP.gamesUP.web.dto.AuthRegisterRequest;
+import com.gamesUP.gamesUP.web.dto.AuthResponse;
+import com.gamesUP.gamesUP.web.dto.RefreshTokenRequest;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class AuthServiceImpl implements AuthService {
+
+    private final UserAccountRepository userAccountRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenService jwtTokenService;
+    private final RefreshTokenService refreshTokenService;
+
+    public AuthServiceImpl(
+        UserAccountRepository userAccountRepository,
+        PasswordEncoder passwordEncoder,
+        AuthenticationManager authenticationManager,
+        JwtTokenService jwtTokenService,
+        RefreshTokenService refreshTokenService
+<span class="fc" id="L36">    ) {</span>
+<span class="fc" id="L37">        this.userAccountRepository = userAccountRepository;</span>
+<span class="fc" id="L38">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L39">        this.authenticationManager = authenticationManager;</span>
+<span class="fc" id="L40">        this.jwtTokenService = jwtTokenService;</span>
+<span class="fc" id="L41">        this.refreshTokenService = refreshTokenService;</span>
+<span class="fc" id="L42">    }</span>
+
+    @Override
+    public AuthResponse register(AuthRegisterRequest request) {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (userAccountRepository.findByEmail(request.email()).isPresent()) {</span>
+<span class="fc" id="L47">            throw new IllegalStateException(&quot;Email already in use&quot;);</span>
+        }
+
+<span class="fc" id="L50">        UserAccount user = new UserAccount();</span>
+<span class="fc" id="L51">        user.setFirstName(request.firstName());</span>
+<span class="fc" id="L52">        user.setLastName(request.lastName());</span>
+<span class="fc" id="L53">        user.setEmail(request.email());</span>
+<span class="fc" id="L54">        user.setPasswordHash(passwordEncoder.encode(request.password()));</span>
+<span class="fc" id="L55">        user.setRole(UserRole.CUSTOMER);</span>
+
+<span class="fc" id="L57">        UserAccount saved = userAccountRepository.save(user);</span>
+<span class="fc" id="L58">        return issueTokens(saved);</span>
+    }
+
+    @Override
+    public AuthResponse login(AuthLoginRequest request) {
+        try {
+<span class="fc" id="L64">            authenticationManager.authenticate(</span>
+<span class="fc" id="L65">                new UsernamePasswordAuthenticationToken(request.email(), request.password())</span>
+            );
+<span class="fc" id="L67">        } catch (AuthenticationException ex) {</span>
+<span class="fc" id="L68">            throw ex;</span>
+<span class="fc" id="L69">        }</span>
+
+<span class="fc" id="L71">        UserAccount user = userAccountRepository.findByEmail(request.email())</span>
+<span class="pc" id="L72">            .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Invalid credentials&quot;));</span>
+
+<span class="fc" id="L74">        return issueTokens(user);</span>
+    }
+
+    @Override
+    public AuthResponse refresh(RefreshTokenRequest request) {
+<span class="pc bpc" id="L79" title="2 of 6 branches missed.">        if (request == null || request.refreshToken() == null || request.refreshToken().isBlank()) {</span>
+<span class="fc" id="L80">            throw new IllegalArgumentException(&quot;Refresh token is required&quot;);</span>
+        }
+
+<span class="fc" id="L83">        RefreshTokenService.RotatedRefreshToken rotated = refreshTokenService.rotateToken(request.refreshToken());</span>
+<span class="fc" id="L84">        UserAccount user = rotated.user();</span>
+<span class="fc" id="L85">        String accessToken = jwtTokenService.generateToken(user);</span>
+
+<span class="fc" id="L87">        return new AuthResponse(</span>
+            accessToken,
+<span class="fc" id="L89">            rotated.refreshToken(),</span>
+            &quot;Bearer&quot;,
+<span class="fc" id="L91">            jwtTokenService.getAccessTokenExpirationMs(),</span>
+<span class="fc" id="L92">            user.getId(),</span>
+<span class="fc" id="L93">            user.getEmail(),</span>
+<span class="fc" id="L94">            user.getRole()</span>
+        );
+    }
+
+    @Override
+    public void logout(RefreshTokenRequest request) {
+<span class="pc bpc" id="L100" title="2 of 6 branches missed.">        if (request == null || request.refreshToken() == null || request.refreshToken().isBlank()) {</span>
+<span class="fc" id="L101">            throw new IllegalArgumentException(&quot;Refresh token is required&quot;);</span>
+        }
+
+<span class="fc" id="L104">        refreshTokenService.revokeToken(request.refreshToken());</span>
+<span class="fc" id="L105">    }</span>
+
+    private AuthResponse issueTokens(UserAccount user) {
+<span class="fc" id="L108">        String accessToken = jwtTokenService.generateToken(user);</span>
+<span class="fc" id="L109">        String refreshToken = refreshTokenService.createToken(user);</span>
+
+<span class="fc" id="L111">        return new AuthResponse(</span>
+            accessToken,
+            refreshToken,
+            &quot;Bearer&quot;,
+<span class="fc" id="L115">            jwtTokenService.getAccessTokenExpirationMs(),</span>
+<span class="fc" id="L116">            user.getId(),</span>
+<span class="fc" id="L117">            user.getEmail(),</span>
+<span class="fc" id="L118">            user.getRole()</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

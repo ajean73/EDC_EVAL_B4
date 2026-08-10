@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PurchaseOrder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.domain</a> &gt; <span class="el_source">PurchaseOrder.java</span></div><h1>PurchaseOrder.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.domain;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;purchase_orders&quot;)
+<span class="fc" id="L24">public class PurchaseOrder extends BaseEntity {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false)
+    private LocalDateTime orderedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus status;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalAmount;
+
+    @Column(nullable = false)
+    private String shippingAddress;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;user_id&quot;, nullable = false)
+    private UserAccount user;
+
+<span class="fc" id="L47">    @OneToMany(mappedBy = &quot;order&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
+    private List&lt;OrderLine&gt; lines = new ArrayList&lt;&gt;();
+
+    public UUID getId() {
+<span class="fc" id="L51">        return id;</span>
+    }
+
+    public LocalDateTime getOrderedAt() {
+<span class="fc" id="L55">        return orderedAt;</span>
+    }
+
+    public void setOrderedAt(LocalDateTime orderedAt) {
+<span class="fc" id="L59">        this.orderedAt = orderedAt;</span>
+<span class="fc" id="L60">    }</span>
+
+    public OrderStatus getStatus() {
+<span class="fc" id="L63">        return status;</span>
+    }
+
+    public void setStatus(OrderStatus status) {
+<span class="fc" id="L67">        this.status = status;</span>
+<span class="fc" id="L68">    }</span>
+
+    public BigDecimal getTotalAmount() {
+<span class="fc" id="L71">        return totalAmount;</span>
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+<span class="fc" id="L75">        this.totalAmount = totalAmount;</span>
+<span class="fc" id="L76">    }</span>
+
+    public String getShippingAddress() {
+<span class="fc" id="L79">        return shippingAddress;</span>
+    }
+
+    public void setShippingAddress(String shippingAddress) {
+<span class="fc" id="L83">        this.shippingAddress = shippingAddress;</span>
+<span class="fc" id="L84">    }</span>
+
+    public UserAccount getUser() {
+<span class="fc" id="L87">        return user;</span>
+    }
+
+    public void setUser(UserAccount user) {
+<span class="fc" id="L91">        this.user = user;</span>
+<span class="fc" id="L92">    }</span>
+
+    public List&lt;OrderLine&gt; getLines() {
+<span class="fc" id="L95">        return lines;</span>
+    }
+
+    public void setLines(List&lt;OrderLine&gt; lines) {
+<span class="fc" id="L99">        this.lines = lines;</span>
+<span class="fc" id="L100">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
