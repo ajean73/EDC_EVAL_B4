@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -102,8 +103,8 @@ public class BoardGameController {
     }
 
     private BoardGameResponse toResponse(BoardGame game) {
-        Set<UUID> authorIds = game.getAuthors().stream().map(Author::getId).collect(java.util.stream.Collectors.toSet());
-        Set<UUID> categoryIds = game.getCategories().stream().map(Category::getId).collect(java.util.stream.Collectors.toSet());
+        Set<UUID> authorIds = game.getAuthors().stream().map(Author::getId).collect(Collectors.toSet());
+        Set<UUID> categoryIds = game.getCategories().stream().map(Category::getId).collect(Collectors.toSet());
 
         return new BoardGameResponse(
             game.getId(),
