@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PublisherController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.web</a> &gt; <span class="el_source">PublisherController.java</span></div><h1>PublisherController.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.web;
+
+import com.gamesUP.gamesUP.domain.Publisher;
+import com.gamesUP.gamesUP.service.PublisherService;
+import com.gamesUP.gamesUP.web.dto.PublisherRequest;
+import com.gamesUP.gamesUP.web.dto.PublisherResponse;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/api/v1/catalog/publishers&quot;)
+public class PublisherController {
+
+    private final PublisherService publisherService;
+
+<span class="fc" id="L26">    public PublisherController(PublisherService publisherService) {</span>
+<span class="fc" id="L27">        this.publisherService = publisherService;</span>
+<span class="fc" id="L28">    }</span>
+
+    @GetMapping
+    public List&lt;PublisherResponse&gt; findAll() {
+<span class="fc" id="L32">        return publisherService.findAll().stream()</span>
+<span class="fc" id="L33">            .map(p -&gt; new PublisherResponse(p.getId(), p.getName(), p.getCountry()))</span>
+<span class="fc" id="L34">            .toList();</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public PublisherResponse findById(@PathVariable UUID id) {
+<span class="fc" id="L39">        Publisher publisher = publisherService.findById(id);</span>
+<span class="fc" id="L40">        return new PublisherResponse(publisher.getId(), publisher.getName(), publisher.getCountry());</span>
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public PublisherResponse create(@RequestBody PublisherRequest request) {
+<span class="fc" id="L46">        Publisher publisher = new Publisher();</span>
+<span class="fc" id="L47">        publisher.setName(request.name());</span>
+<span class="fc" id="L48">        publisher.setCountry(request.country());</span>
+<span class="fc" id="L49">        Publisher created = publisherService.create(publisher);</span>
+<span class="fc" id="L50">        return new PublisherResponse(created.getId(), created.getName(), created.getCountry());</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public PublisherResponse update(@PathVariable UUID id, @RequestBody PublisherRequest request) {
+<span class="fc" id="L55">        Publisher publisher = new Publisher();</span>
+<span class="fc" id="L56">        publisher.setName(request.name());</span>
+<span class="fc" id="L57">        publisher.setCountry(request.country());</span>
+<span class="fc" id="L58">        Publisher updated = publisherService.update(id, publisher);</span>
+<span class="fc" id="L59">        return new PublisherResponse(updated.getId(), updated.getName(), updated.getCountry());</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+<span class="fc" id="L65">        publisherService.delete(id);</span>
+<span class="fc" id="L66">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

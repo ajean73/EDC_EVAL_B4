@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RefreshTokenService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.security</a> &gt; <span class="el_source">RefreshTokenService.java</span></div><h1>RefreshTokenService.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.security;
+
+import com.gamesUP.gamesUP.domain.RefreshToken;
+import com.gamesUP.gamesUP.domain.UserAccount;
+import com.gamesUP.gamesUP.repository.RefreshTokenRepository;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.Objects;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class RefreshTokenService {
+
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final long refreshExpirationMs;
+<span class="fc" id="L25">    private final SecureRandom secureRandom = new SecureRandom();</span>
+
+    public RefreshTokenService(
+        RefreshTokenRepository refreshTokenRepository,
+        @Value(&quot;${jwt.refresh-expiration-ms:604800000}&quot;) long refreshExpirationMs
+<span class="fc" id="L30">    ) {</span>
+<span class="fc" id="L31">        this.refreshTokenRepository = refreshTokenRepository;</span>
+<span class="fc" id="L32">        this.refreshExpirationMs = refreshExpirationMs;</span>
+<span class="fc" id="L33">    }</span>
+
+    public String createToken(UserAccount user) {
+<span class="fc" id="L36">        Objects.requireNonNull(user, &quot;user must not be null&quot;);</span>
+
+<span class="fc" id="L38">        String rawToken = generateRawToken();</span>
+<span class="fc" id="L39">        RefreshToken refreshToken = new RefreshToken();</span>
+<span class="fc" id="L40">        refreshToken.setUser(user);</span>
+<span class="fc" id="L41">        refreshToken.setTokenHash(hashToken(rawToken));</span>
+<span class="fc" id="L42">        refreshToken.setExpiresAt(LocalDateTime.now().plusNanos(toNanos(refreshExpirationMs)));</span>
+
+<span class="fc" id="L44">        refreshTokenRepository.save(refreshToken);</span>
+<span class="fc" id="L45">        return rawToken;</span>
+    }
+
+    public RotatedRefreshToken rotateToken(String rawToken) {
+<span class="fc" id="L49">        String tokenHash = hashToken(rawToken);</span>
+
+<span class="fc" id="L51">        RefreshToken current = refreshTokenRepository.findByTokenHash(tokenHash)</span>
+<span class="fc" id="L52">            .orElseThrow(() -&gt; new BadCredentialsException(&quot;Invalid refresh token&quot;));</span>
+
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">        if (!current.isActive()) {</span>
+<span class="nc" id="L55">            throw new BadCredentialsException(&quot;Refresh token expired or revoked&quot;);</span>
+        }
+
+<span class="fc" id="L58">        String nextRawToken = generateRawToken();</span>
+<span class="fc" id="L59">        String nextHash = hashToken(nextRawToken);</span>
+
+<span class="fc" id="L61">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L62">        current.setRevokedAt(LocalDateTime.now());</span>
+<span class="fc" id="L63">        current.setReplacedByHash(nextHash);</span>
+<span class="fc" id="L64">        refreshTokenRepository.save(current);</span>
+
+<span class="fc" id="L66">        RefreshToken next = new RefreshToken();</span>
+<span class="fc" id="L67">        next.setUser(current.getUser());</span>
+<span class="fc" id="L68">        next.setTokenHash(nextHash);</span>
+<span class="fc" id="L69">        next.setExpiresAt(now.plusNanos(toNanos(refreshExpirationMs)));</span>
+<span class="fc" id="L70">        refreshTokenRepository.save(next);</span>
+
+<span class="fc" id="L72">        return new RotatedRefreshToken(current.getUser(), nextRawToken);</span>
+    }
+
+    public void revokeToken(String rawToken) {
+<span class="fc" id="L76">        String tokenHash = hashToken(rawToken);</span>
+
+<span class="fc" id="L78">        refreshTokenRepository.findByTokenHash(tokenHash).ifPresent(token -&gt; {</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">            if (token.getRevokedAt() == null) {</span>
+<span class="fc" id="L80">                token.setRevokedAt(LocalDateTime.now());</span>
+<span class="fc" id="L81">                refreshTokenRepository.save(token);</span>
+            }
+<span class="fc" id="L83">        });</span>
+<span class="fc" id="L84">    }</span>
+
+    public int cleanupExpired() {
+<span class="fc" id="L87">        return refreshTokenRepository.deleteExpired(LocalDateTime.now());</span>
+    }
+
+    public long getRefreshExpirationMs() {
+<span class="fc" id="L91">        return refreshExpirationMs;</span>
+    }
+
+    private String generateRawToken() {
+<span class="fc" id="L95">        byte[] randomBytes = new byte[64];</span>
+<span class="fc" id="L96">        secureRandom.nextBytes(randomBytes);</span>
+
+<span class="fc" id="L98">        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);</span>
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+<span class="fc" id="L103">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L104">            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L105">            return HexFormat.of().formatHex(hash);</span>
+<span class="nc" id="L106">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L107">            throw new IllegalStateException(&quot;SHA-256 is not available&quot;, e);</span>
+        }
+    }
+
+    private long toNanos(long milliseconds) {
+<span class="fc" id="L112">        return milliseconds * 1_000_000;</span>
+    }
+
+<span class="fc" id="L115">    public record RotatedRefreshToken(UserAccount user, String refreshToken) {</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

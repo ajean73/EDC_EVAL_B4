@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BoardGameServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.service.impl</a> &gt; <span class="el_source">BoardGameServiceImpl.java</span></div><h1>BoardGameServiceImpl.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.service.impl;
+
+import com.gamesUP.gamesUP.domain.Author;
+import com.gamesUP.gamesUP.domain.BoardGame;
+import com.gamesUP.gamesUP.domain.Category;
+import com.gamesUP.gamesUP.domain.Publisher;
+import com.gamesUP.gamesUP.repository.AuthorRepository;
+import com.gamesUP.gamesUP.repository.BoardGameRepository;
+import com.gamesUP.gamesUP.repository.CategoryRepository;
+import com.gamesUP.gamesUP.repository.PublisherRepository;
+import com.gamesUP.gamesUP.service.BoardGameService;
+import com.gamesUP.gamesUP.service.ResourceNotFoundException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class BoardGameServiceImpl implements BoardGameService {
+
+    private final BoardGameRepository boardGameRepository;
+    private final PublisherRepository publisherRepository;
+    private final AuthorRepository authorRepository;
+    private final CategoryRepository categoryRepository;
+
+    public BoardGameServiceImpl(
+        BoardGameRepository boardGameRepository,
+        PublisherRepository publisherRepository,
+        AuthorRepository authorRepository,
+        CategoryRepository categoryRepository
+<span class="fc" id="L35">    ) {</span>
+<span class="fc" id="L36">        this.boardGameRepository = boardGameRepository;</span>
+<span class="fc" id="L37">        this.publisherRepository = publisherRepository;</span>
+<span class="fc" id="L38">        this.authorRepository = authorRepository;</span>
+<span class="fc" id="L39">        this.categoryRepository = categoryRepository;</span>
+<span class="fc" id="L40">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;BoardGame&gt; findAll() {
+<span class="fc" id="L45">        return boardGameRepository.findAll();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BoardGame findById(UUID id) {
+<span class="fc" id="L51">        return boardGameRepository.findById(id)</span>
+<span class="pc" id="L52">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Game not found: &quot; + id));</span>
+    }
+
+    @Override
+    public BoardGame create(BoardGame boardGame) {
+<span class="fc" id="L57">        BoardGame entity = new BoardGame();</span>
+<span class="fc" id="L58">        applyUpdatableFields(entity, boardGame);</span>
+<span class="fc" id="L59">        return boardGameRepository.save(entity);</span>
+    }
+
+    @Override
+    public BoardGame update(UUID id, BoardGame boardGame) {
+<span class="fc" id="L64">        BoardGame existing = findById(id);</span>
+<span class="nc" id="L65">        applyUpdatableFields(existing, boardGame);</span>
+<span class="nc" id="L66">        return boardGameRepository.save(existing);</span>
+    }
+
+    @Override
+    public void delete(UUID id) {
+<span class="nc" id="L71">        BoardGame existing = findById(id);</span>
+<span class="nc" id="L72">        boardGameRepository.delete(existing);</span>
+<span class="nc" id="L73">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;BoardGame&gt; searchByTitle(String title) {
+<span class="pc bpc" id="L78" title="1 of 4 branches missed.">        if (title == null || title.isBlank()) {</span>
+<span class="fc" id="L79">            return findAll();</span>
+        }
+<span class="fc" id="L81">        return boardGameRepository.findByTitleContainingIgnoreCase(title.trim());</span>
+    }
+
+    private void applyUpdatableFields(BoardGame target, BoardGame source) {
+<span class="fc" id="L85">        target.setTitle(source.getTitle());</span>
+<span class="fc" id="L86">        target.setDescription(source.getDescription());</span>
+<span class="fc" id="L87">        target.setPrice(source.getPrice());</span>
+<span class="fc" id="L88">        target.setAverageRating(source.getAverageRating());</span>
+<span class="fc" id="L89">        target.setReleaseDate(source.getReleaseDate());</span>
+
+<span class="fc" id="L91">        Publisher publisher = resolvePublisher(source.getPublisher());</span>
+<span class="fc" id="L92">        target.setPublisher(publisher);</span>
+
+<span class="fc" id="L94">        target.setAuthors(resolveAuthors(source.getAuthors()));</span>
+<span class="fc" id="L95">        target.setCategories(resolveCategories(source.getCategories()));</span>
+<span class="fc" id="L96">    }</span>
+
+    private Publisher resolvePublisher(Publisher publisher) {
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">        if (publisher == null || publisher.getId() == null) {</span>
+<span class="fc" id="L100">            throw new ResourceNotFoundException(&quot;Publisher id is required&quot;);</span>
+        }
+<span class="fc" id="L102">        return publisherRepository.findById(publisher.getId())</span>
+<span class="pc" id="L103">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Publisher not found: &quot; + publisher.getId()));</span>
+    }
+
+    private Set&lt;Author&gt; resolveAuthors(Set&lt;Author&gt; authors) {
+<span class="pc bpc" id="L107" title="1 of 4 branches missed.">        if (authors == null || authors.isEmpty()) {</span>
+<span class="fc" id="L108">            return new HashSet&lt;&gt;();</span>
+        }
+
+<span class="fc" id="L111">        Set&lt;UUID&gt; ids = authors.stream()</span>
+<span class="fc" id="L112">            .map(Author::getId)</span>
+<span class="fc" id="L113">            .collect(Collectors.toSet());</span>
+
+<span class="fc" id="L115">        List&lt;Author&gt; managedAuthors = authorRepository.findAllById(ids);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (managedAuthors.size() != ids.size()) {</span>
+<span class="fc" id="L117">            throw new ResourceNotFoundException(&quot;One or more authors were not found&quot;);</span>
+        }
+<span class="fc" id="L119">        return new HashSet&lt;&gt;(managedAuthors);</span>
+    }
+
+    private Set&lt;Category&gt; resolveCategories(Set&lt;Category&gt; categories) {
+<span class="pc bpc" id="L123" title="2 of 4 branches missed.">        if (categories == null || categories.isEmpty()) {</span>
+<span class="nc" id="L124">            return new HashSet&lt;&gt;();</span>
+        }
+
+<span class="fc" id="L127">        Set&lt;UUID&gt; ids = categories.stream()</span>
+<span class="fc" id="L128">            .map(Category::getId)</span>
+<span class="fc" id="L129">            .collect(Collectors.toSet());</span>
+
+<span class="fc" id="L131">        List&lt;Category&gt; managedCategories = categoryRepository.findAllById(ids);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (managedCategories.size() != ids.size()) {</span>
+<span class="fc" id="L133">            throw new ResourceNotFoundException(&quot;One or more categories were not found&quot;);</span>
+        }
+<span class="fc" id="L135">        return new HashSet&lt;&gt;(managedCategories);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

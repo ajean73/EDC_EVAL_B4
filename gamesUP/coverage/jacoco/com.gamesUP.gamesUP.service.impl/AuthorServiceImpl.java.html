@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthorServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.service.impl</a> &gt; <span class="el_source">AuthorServiceImpl.java</span></div><h1>AuthorServiceImpl.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.service.impl;
+
+import com.gamesUP.gamesUP.domain.Author;
+import com.gamesUP.gamesUP.repository.AuthorRepository;
+import com.gamesUP.gamesUP.service.AuthorService;
+import com.gamesUP.gamesUP.service.ResourceNotFoundException;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class AuthorServiceImpl implements AuthorService {
+
+    private final AuthorRepository authorRepository;
+
+<span class="fc" id="L18">    public AuthorServiceImpl(AuthorRepository authorRepository) {</span>
+<span class="fc" id="L19">        this.authorRepository = authorRepository;</span>
+<span class="fc" id="L20">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;Author&gt; findAll() {
+<span class="nc" id="L25">        return authorRepository.findAll();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Author findById(UUID id) {
+<span class="nc" id="L31">        return authorRepository.findById(id)</span>
+<span class="nc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Author not found: &quot; + id));</span>
+    }
+
+    @Override
+    public Author create(Author author) {
+<span class="nc" id="L37">        return authorRepository.save(author);</span>
+    }
+
+    @Override
+    public Author update(UUID id, Author author) {
+<span class="nc" id="L42">        Author existing = findById(id);</span>
+<span class="nc" id="L43">        existing.setName(author.getName());</span>
+<span class="nc" id="L44">        return authorRepository.save(existing);</span>
+    }
+
+    @Override
+    public void delete(UUID id) {
+<span class="nc" id="L49">        Author existing = findById(id);</span>
+<span class="nc" id="L50">        authorRepository.delete(existing);</span>
+<span class="nc" id="L51">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

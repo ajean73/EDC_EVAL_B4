@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserAccountServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.service.impl</a> &gt; <span class="el_source">UserAccountServiceImpl.java</span></div><h1>UserAccountServiceImpl.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.service.impl;
+
+import com.gamesUP.gamesUP.domain.UserAccount;
+import com.gamesUP.gamesUP.domain.UserRole;
+import com.gamesUP.gamesUP.repository.UserAccountRepository;
+import com.gamesUP.gamesUP.service.ResourceNotFoundException;
+import com.gamesUP.gamesUP.service.UserAccountService;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class UserAccountServiceImpl implements UserAccountService {
+
+    private final UserAccountRepository userAccountRepository;
+    private final PasswordEncoder passwordEncoder;
+
+<span class="fc" id="L21">    public UserAccountServiceImpl(UserAccountRepository userAccountRepository, PasswordEncoder passwordEncoder) {</span>
+<span class="fc" id="L22">        this.userAccountRepository = userAccountRepository;</span>
+<span class="fc" id="L23">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L24">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;UserAccount&gt; findAll() {
+<span class="nc" id="L29">        return userAccountRepository.findAll();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserAccount findById(UUID id) {
+<span class="fc" id="L35">        return userAccountRepository.findById(id)</span>
+<span class="pc" id="L36">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User not found: &quot; + id));</span>
+    }
+
+    @Override
+    public UserAccount create(UserAccount userAccount) {
+<span class="fc" id="L41">        userAccount.setPasswordHash(encodeIfNeeded(userAccount.getPasswordHash()));</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (userAccount.getRole() == null) {</span>
+<span class="fc" id="L43">            userAccount.setRole(UserRole.CUSTOMER);</span>
+        }
+<span class="fc" id="L45">        return userAccountRepository.save(userAccount);</span>
+    }
+
+    @Override
+    public UserAccount update(UUID id, UserAccount userAccount) {
+<span class="fc" id="L50">        UserAccount existing = findById(id);</span>
+<span class="fc" id="L51">        existing.setFirstName(userAccount.getFirstName());</span>
+<span class="fc" id="L52">        existing.setLastName(userAccount.getLastName());</span>
+<span class="fc" id="L53">        existing.setEmail(userAccount.getEmail());</span>
+<span class="fc" id="L54">        existing.setPasswordHash(encodeIfNeeded(userAccount.getPasswordHash()));</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        existing.setRole(userAccount.getRole() != null ? userAccount.getRole() : existing.getRole());</span>
+<span class="fc" id="L56">        return userAccountRepository.save(existing);</span>
+    }
+
+    @Override
+    public void delete(UUID id) {
+<span class="fc" id="L61">        UserAccount existing = findById(id);</span>
+<span class="fc" id="L62">        userAccountRepository.delete(existing);</span>
+<span class="fc" id="L63">    }</span>
+
+    private String encodeIfNeeded(String rawOrEncodedPassword) {
+<span class="pc bpc" id="L66" title="1 of 4 branches missed.">        if (rawOrEncodedPassword == null || rawOrEncodedPassword.isBlank()) {</span>
+<span class="fc" id="L67">            throw new IllegalArgumentException(&quot;Password is required&quot;);</span>
+        }
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (rawOrEncodedPassword.startsWith(&quot;$2a$&quot;)</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            || rawOrEncodedPassword.startsWith(&quot;$2b$&quot;)</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">            || rawOrEncodedPassword.startsWith(&quot;$2y$&quot;)) {</span>
+<span class="fc" id="L73">            return rawOrEncodedPassword;</span>
+        }
+
+<span class="fc" id="L76">        return passwordEncoder.encode(rawOrEncodedPassword);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
