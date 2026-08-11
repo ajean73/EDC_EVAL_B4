@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gamesup-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gamesup}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  recommendation-api:
+    build:
+      context: ./CodeApiPython
+      dockerfile: Dockerfile
+    container_name: gamesup-recommendation-api
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - recommendation_artifacts:/app/artifacts
+
+  backend:
+    build:
+      context: ./gamesUP
+      dockerfile: Dockerfile
+    container_name: gamesup-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - recommendation-api
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gamesup}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-900000}
+      JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-604800000}
+      RECOMMENDATION_API_URL: http://recommendation-api:8001
+
+volumes:
+  postgres_data:
+  recommendation_artifacts:

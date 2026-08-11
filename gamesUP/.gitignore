@@ -4,6 +4,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 backup_legacy/
+.env
+.env.example
+
 
 ### STS ###
 .apt_generated
