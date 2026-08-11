@@ -1,21 +1,45 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
-from recommendation import generate_recommendations
-from models import UserData
+
+from data_loader import build_training_data_from_csv_or_fallback
+from models import PredictRequest, PredictResponse, TrainRequest, TrainResponse, UserData
+from recommendation import KNNRecommender
 
 app = FastAPI()
+recommender = KNNRecommender()
 
-# Endpoint de base pour tester que l'API est en ligne
+
 @app.get("/")
 async def root():
-    return {"message": "API de recommandation en ligne"}
+    return {
+        "message": "API de recommandation KNN en ligne",
+        "model_trained": recommender.model is not None,
+    }
 
-# Endpoint pour envoyer les données d'utilisateur et récupérer des recommandations
-@app.post("/recommendations/")
-async def get_recommendations(data: UserData):
+
+@app.post("/recommendations/train", response_model=TrainResponse)
+async def train_recommendation_model(request: TrainRequest):
     try:
-        recommendations = generate_recommendations(data)
-        return {"recommendations": recommendations}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return recommender.train(request)
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex)) from ex
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=str(ex)) from ex
+
+
+@app.post("/recommendations/train/csv", response_model=TrainResponse)
+async def train_csv_model(csv_path: str = "training_data.csv", n_neighbors: int = 5):
+    try:
+        request = build_training_data_from_csv_or_fallback(csv_path, n_neighbors=n_neighbors)
+        return recommender.train(request)
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=str(ex)) from ex
+
+
+@app.post("/recommendations/predict", response_model=PredictResponse)
+async def predict_recommendations(request: PredictRequest):
+    try:
+        return recommender.predict(request)
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex)) from ex
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=str(ex)) from ex
