@@ -20,7 +20,7 @@ cd gamesUP
 - Architecture : [docs/diagramme_architecture.drawio.png](docs/diagramme_architecture.drawio.png)
 - Composants : [docs/diagramme_composants.drawio.png](docs/diagramme_composants.drawio.png)
 - Classes : [docs/diagramme_classes.drawio.png](docs/diagramme_classes.drawio.png)
-- Séquence (recommandation) : [docs/diagramme_sequence.draxio.png](docs/diagramme_sequence_edc4.png)
+- Séquence (recommandation) : [docs/diagramme_sequence.draxio.png](docs/diagramme_sequence.drawio.png)
 
 ## Documentation technique
 - [Voir la documentation technique](docs/gamesup_explications_travail.pdf)
