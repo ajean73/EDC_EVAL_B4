@@ -22,32 +22,32 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     @Transactional(readOnly = true)
     public List&lt;Author&gt; findAll() {
-<span class="nc" id="L25">        return authorRepository.findAll();</span>
+<span class="fc" id="L25">        return authorRepository.findAll();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public Author findById(UUID id) {
-<span class="nc" id="L31">        return authorRepository.findById(id)</span>
-<span class="nc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Author not found: &quot; + id));</span>
+<span class="fc" id="L31">        return authorRepository.findById(id)</span>
+<span class="fc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Author not found: &quot; + id));</span>
     }
 
     @Override
     public Author create(Author author) {
-<span class="nc" id="L37">        return authorRepository.save(author);</span>
+<span class="fc" id="L37">        return authorRepository.save(author);</span>
     }
 
     @Override
     public Author update(UUID id, Author author) {
-<span class="nc" id="L42">        Author existing = findById(id);</span>
-<span class="nc" id="L43">        existing.setName(author.getName());</span>
-<span class="nc" id="L44">        return authorRepository.save(existing);</span>
+<span class="fc" id="L42">        Author existing = findById(id);</span>
+<span class="fc" id="L43">        existing.setName(author.getName());</span>
+<span class="fc" id="L44">        return authorRepository.save(existing);</span>
     }
 
     @Override
     public void delete(UUID id) {
-<span class="nc" id="L49">        Author existing = findById(id);</span>
-<span class="nc" id="L50">        authorRepository.delete(existing);</span>
-<span class="nc" id="L51">    }</span>
+<span class="fc" id="L49">        Author existing = findById(id);</span>
+<span class="fc" id="L50">        authorRepository.delete(existing);</span>
+<span class="fc" id="L51">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

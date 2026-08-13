@@ -22,33 +22,33 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public List&lt;Category&gt; findAll() {
-<span class="nc" id="L25">        return categoryRepository.findAll();</span>
+<span class="fc" id="L25">        return categoryRepository.findAll();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public Category findById(UUID id) {
-<span class="nc" id="L31">        return categoryRepository.findById(id)</span>
-<span class="nc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category not found: &quot; + id));</span>
+<span class="fc" id="L31">        return categoryRepository.findById(id)</span>
+<span class="fc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category not found: &quot; + id));</span>
     }
 
     @Override
     public Category create(Category category) {
-<span class="nc" id="L37">        return categoryRepository.save(category);</span>
+<span class="fc" id="L37">        return categoryRepository.save(category);</span>
     }
 
     @Override
     public Category update(UUID id, Category category) {
-<span class="nc" id="L42">        Category existing = findById(id);</span>
-<span class="nc" id="L43">        existing.setName(category.getName());</span>
-<span class="nc" id="L44">        existing.setDescription(category.getDescription());</span>
-<span class="nc" id="L45">        return categoryRepository.save(existing);</span>
+<span class="fc" id="L42">        Category existing = findById(id);</span>
+<span class="fc" id="L43">        existing.setName(category.getName());</span>
+<span class="fc" id="L44">        existing.setDescription(category.getDescription());</span>
+<span class="fc" id="L45">        return categoryRepository.save(existing);</span>
     }
 
     @Override
     public void delete(UUID id) {
-<span class="nc" id="L50">        Category existing = findById(id);</span>
-<span class="nc" id="L51">        categoryRepository.delete(existing);</span>
-<span class="nc" id="L52">    }</span>
+<span class="fc" id="L50">        Category existing = findById(id);</span>
+<span class="fc" id="L51">        categoryRepository.delete(existing);</span>
+<span class="fc" id="L52">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

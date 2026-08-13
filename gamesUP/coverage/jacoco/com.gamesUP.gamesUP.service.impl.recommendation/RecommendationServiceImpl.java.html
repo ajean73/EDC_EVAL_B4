@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RecommendationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gamesUP</a> &gt; <a href="index.source.html" class="el_package">com.gamesUP.gamesUP.service.impl.recommendation</a> &gt; <span class="el_source">RecommendationServiceImpl.java</span></div><h1>RecommendationServiceImpl.java</h1><pre class="source lang-java linenums">package com.gamesUP.gamesUP.service.impl.recommendation;
+
+import com.gamesUP.gamesUP.domain.Author;
+import com.gamesUP.gamesUP.domain.BoardGame;
+import com.gamesUP.gamesUP.domain.Category;
+import com.gamesUP.gamesUP.domain.OrderLine;
+import com.gamesUP.gamesUP.domain.PurchaseOrder;
+import com.gamesUP.gamesUP.domain.UserAccount;
+import com.gamesUP.gamesUP.repository.BoardGameRepository;
+import com.gamesUP.gamesUP.repository.PurchaseOrderRepository;
+import com.gamesUP.gamesUP.repository.UserAccountRepository;
+import com.gamesUP.gamesUP.service.ResourceNotFoundException;
+import com.gamesUP.gamesUP.service.recommendation.RecommendationClientPayloads;
+import com.gamesUP.gamesUP.service.recommendation.RecommendationService;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+@Transactional(readOnly = true)
+public class RecommendationServiceImpl implements RecommendationService {
+
+    private static final double DEFAULT_RATING = 4.0;
+    private static final String TOP_SALES_FALLBACK_NO_HISTORY = &quot;top_sales_fallback_no_history&quot;;
+    private static final String TOP_SALES_FALLBACK_ML_UNAVAILABLE = &quot;top_sales_fallback_ml_unavailable&quot;;
+    private static final String TOP_RATED_FALLBACK_NO_SALES = &quot;top_rated_fallback_no_sales&quot;;
+
+    private final BoardGameRepository boardGameRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final RestTemplate restTemplate;
+    private final String pythonApiBaseUrl;
+
+    public RecommendationServiceImpl(
+        BoardGameRepository boardGameRepository,
+        PurchaseOrderRepository purchaseOrderRepository,
+        UserAccountRepository userAccountRepository,
+        RestTemplate restTemplate,
+        @Value(&quot;${recommendation.python.base-url:http://localhost:8001}&quot;) String pythonApiBaseUrl
+<span class="fc" id="L51">    ) {</span>
+<span class="fc" id="L52">        this.boardGameRepository = boardGameRepository;</span>
+<span class="fc" id="L53">        this.purchaseOrderRepository = purchaseOrderRepository;</span>
+<span class="fc" id="L54">        this.userAccountRepository = userAccountRepository;</span>
+<span class="fc" id="L55">        this.restTemplate = restTemplate;</span>
+<span class="fc" id="L56">        this.pythonApiBaseUrl = pythonApiBaseUrl;</span>
+<span class="fc" id="L57">    }</span>
+
+    @Override
+    @Transactional
+    public TrainJobResult trainModel(int nNeighbors) {
+<span class="fc" id="L62">        List&lt;BoardGame&gt; games = boardGameRepository.findAll();</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (games.size() &lt; 2) {</span>
+<span class="fc" id="L64">            throw new IllegalArgumentException(&quot;At least 2 board games are required to train recommendations&quot;);</span>
+        }
+
+<span class="nc" id="L67">        List&lt;RecommendationClientPayloads.CatalogItem&gt; catalogItems = games.stream()</span>
+<span class="nc" id="L68">            .map(this::toCatalogItem)</span>
+<span class="nc" id="L69">            .toList();</span>
+
+<span class="nc" id="L71">        List&lt;RecommendationClientPayloads.Interaction&gt; interactions = purchaseOrderRepository.findAll().stream()</span>
+<span class="nc" id="L72">            .flatMap(order -&gt; order.getLines().stream().map(line -&gt; toInteraction(order, line)))</span>
+<span class="nc" id="L73">            .toList();</span>
+
+<span class="nc" id="L75">        RecommendationClientPayloads.TrainRequest request = new RecommendationClientPayloads.TrainRequest(</span>
+            catalogItems,
+            interactions,
+<span class="nc" id="L78">            Math.max(2, nNeighbors)</span>
+        );
+
+        RecommendationClientPayloads.TrainResponse response;
+        try {
+<span class="nc" id="L83">            response = restTemplate.postForObject(</span>
+                pythonApiBaseUrl + &quot;/recommendations/train&quot;,
+                request,
+                RecommendationClientPayloads.TrainResponse.class
+            );
+<span class="nc" id="L88">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L89">            throw new IllegalStateException(&quot;Unable to train recommendation model on Python API&quot;, ex);</span>
+<span class="nc" id="L90">        }</span>
+
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (response == null) {</span>
+<span class="nc" id="L93">            throw new IllegalStateException(&quot;Python recommendation API returned an empty train response&quot;);</span>
+        }
+
+<span class="nc" id="L96">        return new TrainJobResult(</span>
+<span class="nc" id="L97">            response.trained(),</span>
+<span class="nc" id="L98">            response.gamesCount(),</span>
+<span class="nc" id="L99">            response.interactionsCount(),</span>
+<span class="nc" id="L100">            response.trainedAt()</span>
+        );
+    }
+
+    @Override
+    public UserRecommendationResult recommendForUser(UUID userId, int topK) {
+<span class="fc" id="L106">        UserAccount user = userAccountRepository.findById(userId)</span>
+<span class="pc" id="L107">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User not found: &quot; + userId));</span>
+
+<span class="fc" id="L109">        int safeTopK = Math.max(1, topK);</span>
+<span class="fc" id="L110">        List&lt;PurchaseOrder&gt; orders = purchaseOrderRepository.findByUser(user);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (orders.isEmpty()) {</span>
+<span class="fc" id="L112">            return buildTopSalesFallback(userId, safeTopK, Set.of(), TOP_SALES_FALLBACK_NO_HISTORY);</span>
+        }
+
+<span class="fc" id="L115">        Map&lt;UUID, Double&gt; purchaseRatingsByGameId = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L116">        Set&lt;UUID&gt; purchasedGameIds = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        for (PurchaseOrder order : orders) {</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">            for (OrderLine line : order.getLines()) {</span>
+<span class="fc" id="L119">                UUID gameId = line.getGame().getId();</span>
+<span class="fc" id="L120">                purchasedGameIds.add(gameId);</span>
+<span class="fc" id="L121">                double rating = deriveRating(line.getGame().getAverageRating());</span>
+<span class="fc" id="L122">                purchaseRatingsByGameId.merge(gameId, rating, Math::max);</span>
+<span class="fc" id="L123">            }</span>
+<span class="fc" id="L124">        }</span>
+
+<span class="fc" id="L126">        List&lt;RecommendationClientPayloads.UserPurchase&gt; purchases = purchaseRatingsByGameId.entrySet().stream()</span>
+<span class="fc" id="L127">            .map(entry -&gt; new RecommendationClientPayloads.UserPurchase(entry.getKey().toString(), entry.getValue()))</span>
+<span class="fc" id="L128">            .toList();</span>
+
+<span class="fc" id="L130">        RecommendationClientPayloads.PredictRequest request = new RecommendationClientPayloads.PredictRequest(</span>
+<span class="fc" id="L131">            new RecommendationClientPayloads.UserData(userId.toString(), purchases),</span>
+            safeTopK
+        );
+
+        RecommendationClientPayloads.PredictResponse response;
+        try {
+<span class="fc" id="L137">            response = restTemplate.postForObject(</span>
+                pythonApiBaseUrl + &quot;/recommendations/predict&quot;,
+                request,
+                RecommendationClientPayloads.PredictResponse.class
+            );
+<span class="fc" id="L142">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L143">            return buildTopSalesFallback(userId, safeTopK, purchasedGameIds, TOP_SALES_FALLBACK_ML_UNAVAILABLE);</span>
+<span class="fc" id="L144">        }</span>
+
+<span class="pc bpc" id="L146" title="2 of 6 branches missed.">        if (response == null || response.recommendations() == null || !response.modelTrained()) {</span>
+<span class="fc" id="L147">            return buildTopSalesFallback(userId, safeTopK, purchasedGameIds, TOP_SALES_FALLBACK_ML_UNAVAILABLE);</span>
+        }
+
+<span class="fc" id="L150">        Map&lt;UUID, BoardGame&gt; gamesById = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        for (BoardGame game : boardGameRepository.findAll()) {</span>
+<span class="fc" id="L152">            gamesById.put(game.getId(), game);</span>
+<span class="fc" id="L153">        }</span>
+
+<span class="fc" id="L155">        List&lt;RecommendedGame&gt; recommendations = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        for (RecommendationClientPayloads.RecommendationItem item : response.recommendations()) {</span>
+            UUID gameId;
+            try {
+<span class="nc" id="L159">                gameId = UUID.fromString(item.gameId());</span>
+<span class="fc" id="L160">            } catch (IllegalArgumentException ex) {</span>
+<span class="fc" id="L161">                continue;</span>
+<span class="nc" id="L162">            }</span>
+
+<span class="nc" id="L164">            BoardGame game = gamesById.get(gameId);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            if (game == null) {</span>
+<span class="nc" id="L166">                continue;</span>
+            }
+
+<span class="nc" id="L169">            recommendations.add(</span>
+                new RecommendedGame(
+<span class="nc" id="L171">                    game.getId(),</span>
+<span class="nc" id="L172">                    game.getTitle(),</span>
+<span class="nc" id="L173">                    item.score(),</span>
+<span class="nc" id="L174">                    item.reason()</span>
+                )
+            );
+<span class="nc" id="L177">        }</span>
+
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">        if (recommendations.isEmpty()) {</span>
+<span class="fc" id="L180">            return buildTopSalesFallback(userId, safeTopK, purchasedGameIds, TOP_SALES_FALLBACK_ML_UNAVAILABLE);</span>
+        }
+
+<span class="nc" id="L183">        recommendations.sort(Comparator.comparingDouble(RecommendedGame::score).reversed());</span>
+
+<span class="nc" id="L185">        return new UserRecommendationResult(</span>
+            userId,
+<span class="nc" id="L187">            response.modelTrained(),</span>
+            recommendations
+        );
+    }
+
+    private UserRecommendationResult buildTopSalesFallback(UUID userId, int topK, Set&lt;UUID&gt; excludedGameIds, String reason) {
+<span class="fc" id="L193">        Map&lt;UUID, Integer&gt; soldUnitsByGameId = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        for (PurchaseOrder order : purchaseOrderRepository.findAll()) {</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">            for (OrderLine line : order.getLines()) {</span>
+<span class="pc bpc" id="L196" title="2 of 4 branches missed.">                if (line.getGame() == null || line.getGame().getId() == null) {</span>
+<span class="nc" id="L197">                    continue;</span>
+                }
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">                int units = line.getQuantity() != null ? line.getQuantity() : 0;</span>
+<span class="fc" id="L200">                soldUnitsByGameId.merge(line.getGame().getId(), units, Integer::sum);</span>
+<span class="fc" id="L201">            }</span>
+<span class="fc" id="L202">        }</span>
+
+<span class="fc" id="L204">        Map&lt;UUID, BoardGame&gt; gamesById = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        for (BoardGame game : boardGameRepository.findAll()) {</span>
+<span class="fc" id="L206">            gamesById.put(game.getId(), game);</span>
+<span class="fc" id="L207">        }</span>
+
+<span class="fc" id="L209">        List&lt;RecommendedGame&gt; recommendations = soldUnitsByGameId.entrySet().stream()</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">            .filter(entry -&gt; !excludedGameIds.contains(entry.getKey()))</span>
+<span class="fc" id="L211">            .filter(entry -&gt; gamesById.containsKey(entry.getKey()))</span>
+<span class="fc" id="L212">            .sorted((left, right) -&gt; Integer.compare(right.getValue(), left.getValue()))</span>
+<span class="fc" id="L213">            .limit(topK)</span>
+<span class="fc" id="L214">            .map(entry -&gt; {</span>
+<span class="fc" id="L215">                BoardGame game = gamesById.get(entry.getKey());</span>
+<span class="fc" id="L216">                return new RecommendedGame(game.getId(), game.getTitle(), entry.getValue(), reason);</span>
+            })
+<span class="fc" id="L218">            .toList();</span>
+
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (recommendations.size() &lt; topK) {</span>
+<span class="fc" id="L221">            Set&lt;UUID&gt; alreadyRecommendedIds = recommendations.stream()</span>
+<span class="fc" id="L222">                .map(RecommendedGame::gameId)</span>
+<span class="fc" id="L223">                .collect(java.util.stream.Collectors.toSet());</span>
+
+<span class="fc" id="L225">            List&lt;RecommendedGame&gt; topRated = gamesById.values().stream()</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">                .filter(game -&gt; !excludedGameIds.contains(game.getId()))</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">                .filter(game -&gt; !alreadyRecommendedIds.contains(game.getId()))</span>
+<span class="fc" id="L228">                .sorted(</span>
+                    Comparator
+<span class="fc" id="L230">                        .comparingDouble((BoardGame game) -&gt; deriveRating(game.getAverageRating()))</span>
+<span class="fc" id="L231">                        .reversed()</span>
+                )
+<span class="fc" id="L233">                .limit(topK - recommendations.size())</span>
+<span class="fc" id="L234">                .map(game -&gt; new RecommendedGame(game.getId(), game.getTitle(), deriveRating(game.getAverageRating()), TOP_RATED_FALLBACK_NO_SALES))</span>
+<span class="fc" id="L235">                .toList();</span>
+
+<span class="fc" id="L237">            List&lt;RecommendedGame&gt; merged = new ArrayList&lt;&gt;(recommendations);</span>
+<span class="fc" id="L238">            merged.addAll(topRated);</span>
+<span class="fc" id="L239">            recommendations = merged;</span>
+        }
+
+<span class="fc" id="L242">        return new UserRecommendationResult(userId, false, recommendations);</span>
+    }
+
+    private RecommendationClientPayloads.CatalogItem toCatalogItem(BoardGame game) {
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        String publisherName = game.getPublisher() != null ? game.getPublisher().getName() : &quot;unknown&quot;;</span>
+
+<span class="nc" id="L248">        List&lt;String&gt; categoryNames = game.getCategories().stream().map(Category::getName).sorted().toList();</span>
+<span class="nc" id="L249">        List&lt;String&gt; authorNames = game.getAuthors().stream().map(Author::getName).sorted().toList();</span>
+
+<span class="nc" id="L251">        return new RecommendationClientPayloads.CatalogItem(</span>
+<span class="nc" id="L252">            game.getId().toString(),</span>
+<span class="nc" id="L253">            game.getTitle(),</span>
+            publisherName,
+            categoryNames,
+            authorNames,
+<span class="nc" id="L257">            toDouble(game.getPrice()),</span>
+<span class="nc" id="L258">            deriveRating(game.getAverageRating())</span>
+        );
+    }
+
+    private RecommendationClientPayloads.Interaction toInteraction(PurchaseOrder order, OrderLine line) {
+<span class="nc" id="L263">        return new RecommendationClientPayloads.Interaction(</span>
+<span class="nc" id="L264">            order.getUser().getId().toString(),</span>
+<span class="nc" id="L265">            line.getGame().getId().toString(),</span>
+<span class="nc" id="L266">            deriveRating(line.getGame().getAverageRating())</span>
+        );
+    }
+
+    private double deriveRating(BigDecimal averageRating) {
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">        return averageRating != null ? averageRating.doubleValue() : DEFAULT_RATING;</span>
+    }
+
+    private double toDouble(BigDecimal value) {
+<span class="nc bnc" id="L275" title="All 2 branches missed.">        return value != null ? value.doubleValue() : 0.0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
