@@ -1,7 +1,7 @@
 # GamesUP - EDC 4
 
 ## Description
-Projet e-commerce de jeux de société avec un backend `Spring Boot`, une API de recommandation `FastAPI` (KNN) et une base `PostgreSQL`.
+Projet e-commerce de jeux de société avec un backend `Spring Boot`, une API de recommandation `FastAPI` (KNN) et une base `MySQL`.
 
 ## Lancer le backend Spring, API de recommandations et bdd
 1. Démarrer les services :
