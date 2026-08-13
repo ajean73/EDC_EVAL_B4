@@ -39,7 +39,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             username = jwtTokenService.extractUsername(token);
         } catch (Exception ex) {
-            // Token invalide: on ne bloque pas ici, la sécurité tranchera ensuite.
             filterChain.doFilter(request, response);
             return;
         }
