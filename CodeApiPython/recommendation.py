@@ -76,6 +76,7 @@ class KNNRecommender:
 
         purchased = request.user_data.purchases
         if not purchased:
+            # Sans historique d'achat, on retourne un fallback déterministe.
             recommendations = self._fallback_top_rated(request.top_k)
             return PredictResponse(
                 user_id=request.user_data.user_id,
@@ -155,6 +156,7 @@ class KNNRecommender:
     def _build_feature_matrix(
         self, catalog: List[GameCatalogItem]
     ) -> Tuple[np.ndarray, MultiLabelBinarizer, MultiLabelBinarizer, List[str]]:
+        # Encodage hybride: numériques + publisher one-hot + catégories/auteurs multi-hot.
         categories = [item.categories for item in catalog]
         authors = [item.authors for item in catalog]
 

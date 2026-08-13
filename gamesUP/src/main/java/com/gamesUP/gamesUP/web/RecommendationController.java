@@ -29,6 +29,7 @@ public class RecommendationController {
     @PostMapping("/train")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public RecommendationTrainResponse trainModel(@RequestBody(required = false) RecommendationTrainRequest request) {
+        // Valeur par défaut prudente si le client n'envoie pas de paramètre valide.
         int nNeighbors = request != null && request.nNeighbors() > 0 ? request.nNeighbors() : 5;
         RecommendationService.TrainJobResult result = recommendationService.trainModel(nNeighbors);
         return new RecommendationTrainResponse(
@@ -44,6 +45,7 @@ public class RecommendationController {
         @PathVariable UUID userId,
         @RequestParam(name = "topK", defaultValue = "5") int topK
     ) {
+        // Le service applique aussi ses garde-fous sur topK côté métier.
         RecommendationService.UserRecommendationResult result = recommendationService.recommendForUser(userId, topK);
         return new UserRecommendationResponse(
             result.userId(),

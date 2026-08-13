@@ -140,6 +140,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 RecommendationClientPayloads.PredictResponse.class
             );
         } catch (RestClientException ex) {
+            // Si le service ML est indisponible, on bascule sur le fallback métier.
             return buildTopSalesFallback(userId, safeTopK, purchasedGameIds, TOP_SALES_FALLBACK_ML_UNAVAILABLE);
         }
 
@@ -190,6 +191,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     private UserRecommendationResult buildTopSalesFallback(UUID userId, int topK, Set<UUID> excludedGameIds, String reason) {
+        // Fallback principal: on priorise les jeux les plus vendus.
         Map<UUID, Integer> soldUnitsByGameId = new HashMap<>();
         for (PurchaseOrder order : purchaseOrderRepository.findAll()) {
             for (OrderLine line : order.getLines()) {

@@ -39,11 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             username = jwtTokenService.extractUsername(token);
         } catch (Exception ex) {
+            // Token invalide: on ne bloque pas ici, la sécurité tranchera ensuite.
             filterChain.doFilter(request, response);
             return;
         }
 
         if (StringUtils.hasText(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
+            // Le contexte Spring Security est rempli uniquement si le token est valide.
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             if (jwtTokenService.isTokenValid(token, userDetails.getUsername())) {
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(

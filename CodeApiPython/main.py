@@ -10,6 +10,7 @@ recommender = KNNRecommender()
 
 @app.get("/")
 async def root():
+    # Point de santé simple pour vérifier l'état du modèle chargé.
     return {
         "message": "API de recommandation KNN en ligne",
         "model_trained": recommender.model is not None,
@@ -21,6 +22,7 @@ async def train_recommendation_model(request: TrainRequest):
     try:
         return recommender.train(request)
     except ValueError as ex:
+        # Erreur métier attendue (payload invalide): 400 côté client.
         raise HTTPException(status_code=400, detail=str(ex)) from ex
     except Exception as ex:
         raise HTTPException(status_code=500, detail=str(ex)) from ex

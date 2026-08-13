@@ -80,6 +80,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         List<OrderLine> sourceLines = source.getLines() == null ? List.of() : source.getLines();
         List<OrderLine> managedLines = new ArrayList<>();
 
+        // On reconstruit des lignes "gérées" pour éviter d'injecter des entités détachées.
         for (OrderLine line : sourceLines) {
             BoardGame game = resolveGame(line.getGame());
             OrderLine managedLine = new OrderLine();
@@ -93,6 +94,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         target.getLines().clear();
         target.getLines().addAll(managedLines);
 
+        // Le total est recalculé côté serveur pour garantir sa cohérence.
         BigDecimal totalAmount = managedLines.stream()
             .map(line -> line.getUnitPrice().multiply(BigDecimal.valueOf(line.getQuantity())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);

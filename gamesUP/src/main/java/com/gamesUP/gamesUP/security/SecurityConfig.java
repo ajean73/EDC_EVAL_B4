@@ -26,11 +26,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // API stateless: pas de session serveur, authentification via JWT.
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                // Les opérations sensibles restent réservées au rôle ADMIN.
                 .requestMatchers(HttpMethod.GET, "/api/v1/identity/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/commerce/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
