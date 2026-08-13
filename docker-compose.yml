@@ -1,16 +1,17 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: gamesup-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: gamesup-mysql
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gamesup}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DB:-gamesup}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
 
   recommendation-api:
     build:
@@ -30,21 +31,21 @@ services:
     container_name: gamesup-backend
     restart: unless-stopped
     depends_on:
-      - postgres
+      - mysql
       - recommendation-api
     ports:
       - "8080:8080"
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-gamesup}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DB: ${MYSQL_DB:-gamesup}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-900000}
       JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-604800000}
       RECOMMENDATION_API_URL: http://recommendation-api:8001
 
 volumes:
-  postgres_data:
+  mysql_data:
   recommendation_artifacts:

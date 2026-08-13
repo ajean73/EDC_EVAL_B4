@@ -9,35 +9,35 @@ import com.gamesUP.gamesUP.domain.Publisher;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-@EnabledIfEnvironmentVariable(named = "RUN_POSTGRES_IT", matches = "true")
-class BoardGameRepositoryPostgresIT {
+@EnabledIfEnvironmentVariable(named = "RUN_MYSQL_IT", matches = "true")
+class BoardGameRepositoryMySqlIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.4")
         .withDatabaseName("gamesup_test")
         .withUsername("test")
         .withPassword("test");
 
     @DynamicPropertySource
     static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.datasource.driver-class-name", postgres::getDriverClassName);
+        registry.add("spring.datasource.url", mysql::getJdbcUrl);
+        registry.add("spring.datasource.username", mysql::getUsername);
+        registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("spring.datasource.driver-class-name", mysql::getDriverClassName);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
@@ -54,7 +54,7 @@ class BoardGameRepositoryPostgresIT {
     private CategoryRepository categoryRepository;
 
     @Test
-    void findByTitleContainingIgnoreCaseWorksOnPostgresContainer() {
+    void findByTitleContainingIgnoreCaseWorksOnMySqlContainer() {
         Publisher publisher = new Publisher();
         publisher.setName("Ludonaute");
         publisher.setCountry("FR");

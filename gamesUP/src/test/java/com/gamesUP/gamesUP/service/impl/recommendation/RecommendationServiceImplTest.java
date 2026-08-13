@@ -2,6 +2,7 @@ package com.gamesUP.gamesUP.service.impl.recommendation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +13,7 @@ import com.gamesUP.gamesUP.domain.UserAccount;
 import com.gamesUP.gamesUP.repository.BoardGameRepository;
 import com.gamesUP.gamesUP.repository.PurchaseOrderRepository;
 import com.gamesUP.gamesUP.repository.UserAccountRepository;
+import com.gamesUP.gamesUP.service.recommendation.RecommendationClientPayloads;
 import com.gamesUP.gamesUP.service.recommendation.RecommendationService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -106,6 +108,94 @@ class RecommendationServiceImplTest {
         assertEquals(2, result.recommendations().size());
         assertEquals(topSeller.getId(), result.recommendations().get(0).gameId());
         assertEquals("top_sales_fallback_no_history", result.recommendations().get(0).reason());
+    }
+
+    @Test
+    void trainModelThrowsWhenCatalogHasLessThanTwoGames() {
+        BoardGame onlyGame = game("Single Game", new BigDecimal("4.0"));
+        when(boardGameRepository.findAll()).thenReturn(List.of(onlyGame));
+
+        assertThrows(IllegalArgumentException.class, () -> service.trainModel(5));
+    }
+
+    @Test
+    void recommendForUserFallsBackWhenPythonResponseIsNotTrained() {
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(userId);
+
+        BoardGame purchasedGame = game("Dixit", new BigDecimal("4.3"));
+        BoardGame topSeller = game("7 Wonders", new BigDecimal("4.6"));
+
+        PurchaseOrder userOrder = orderWithLines(line(purchasedGame, 1));
+        PurchaseOrder salesOrder = orderWithLines(line(topSeller, 6));
+
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(purchaseOrderRepository.findByUser(user)).thenReturn(List.of(userOrder));
+        when(purchaseOrderRepository.findAll()).thenReturn(List.of(userOrder, salesOrder));
+        when(boardGameRepository.findAll()).thenReturn(List.of(purchasedGame, topSeller));
+        when(restTemplate.postForObject(any(String.class), any(), any(Class.class)))
+            .thenReturn(new RecommendationClientPayloads.PredictResponse(userId.toString(), false, List.of()));
+
+        RecommendationService.UserRecommendationResult result = service.recommendForUser(userId, 2);
+
+        assertFalse(result.modelTrained());
+        assertEquals(1, result.recommendations().size());
+        assertEquals(topSeller.getId(), result.recommendations().get(0).gameId());
+        assertEquals("top_sales_fallback_ml_unavailable", result.recommendations().get(0).reason());
+    }
+
+    @Test
+    void recommendForUserFallsBackWhenPythonRecommendationsContainOnlyInvalidIds() {
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(userId);
+
+        BoardGame purchasedGame = game("Dixit", new BigDecimal("4.3"));
+        BoardGame topSeller = game("7 Wonders", new BigDecimal("4.6"));
+
+        PurchaseOrder userOrder = orderWithLines(line(purchasedGame, 1));
+        PurchaseOrder salesOrder = orderWithLines(line(topSeller, 6));
+
+        RecommendationClientPayloads.RecommendationItem invalidItem =
+            new RecommendationClientPayloads.RecommendationItem("not-a-uuid", 0.95, "ml");
+        RecommendationClientPayloads.PredictResponse pythonResponse =
+            new RecommendationClientPayloads.PredictResponse(userId.toString(), true, List.of(invalidItem));
+
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(purchaseOrderRepository.findByUser(user)).thenReturn(List.of(userOrder));
+        when(purchaseOrderRepository.findAll()).thenReturn(List.of(userOrder, salesOrder));
+        when(boardGameRepository.findAll()).thenReturn(List.of(purchasedGame, topSeller));
+        when(restTemplate.postForObject(any(String.class), any(), any(Class.class))).thenReturn(pythonResponse);
+
+        RecommendationService.UserRecommendationResult result = service.recommendForUser(userId, 2);
+
+        assertFalse(result.modelTrained());
+        assertEquals(1, result.recommendations().size());
+        assertEquals(topSeller.getId(), result.recommendations().get(0).gameId());
+        assertEquals("top_sales_fallback_ml_unavailable", result.recommendations().get(0).reason());
+    }
+
+    @Test
+    void recommendForUserCompletesWithTopRatedWhenSalesFallbackIsInsufficient() {
+        UUID userId = UUID.randomUUID();
+        UserAccount user = new UserAccount();
+        user.setId(userId);
+
+        BoardGame topRatedA = game("Ark Nova", new BigDecimal("4.8"));
+        BoardGame topRatedB = game("Brass", new BigDecimal("4.7"));
+
+        when(userAccountRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(purchaseOrderRepository.findByUser(user)).thenReturn(List.of());
+        when(purchaseOrderRepository.findAll()).thenReturn(List.of());
+        when(boardGameRepository.findAll()).thenReturn(List.of(topRatedA, topRatedB));
+
+        RecommendationService.UserRecommendationResult result = service.recommendForUser(userId, 2);
+
+        assertFalse(result.modelTrained());
+        assertEquals(2, result.recommendations().size());
+        assertEquals("top_rated_fallback_no_sales", result.recommendations().get(0).reason());
+        assertEquals("top_rated_fallback_no_sales", result.recommendations().get(1).reason());
     }
 
     private BoardGame game(String title, BigDecimal averageRating) {
