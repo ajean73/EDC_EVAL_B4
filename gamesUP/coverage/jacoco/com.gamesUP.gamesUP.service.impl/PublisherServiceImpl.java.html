@@ -22,33 +22,33 @@ public class PublisherServiceImpl implements PublisherService {
     @Override
     @Transactional(readOnly = true)
     public List&lt;Publisher&gt; findAll() {
-<span class="nc" id="L25">        return publisherRepository.findAll();</span>
+<span class="fc" id="L25">        return publisherRepository.findAll();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public Publisher findById(UUID id) {
-<span class="nc" id="L31">        return publisherRepository.findById(id)</span>
-<span class="nc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Publisher not found: &quot; + id));</span>
+<span class="fc" id="L31">        return publisherRepository.findById(id)</span>
+<span class="fc" id="L32">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Publisher not found: &quot; + id));</span>
     }
 
     @Override
     public Publisher create(Publisher publisher) {
-<span class="nc" id="L37">        return publisherRepository.save(publisher);</span>
+<span class="fc" id="L37">        return publisherRepository.save(publisher);</span>
     }
 
     @Override
     public Publisher update(UUID id, Publisher publisher) {
-<span class="nc" id="L42">        Publisher existing = findById(id);</span>
-<span class="nc" id="L43">        existing.setName(publisher.getName());</span>
-<span class="nc" id="L44">        existing.setCountry(publisher.getCountry());</span>
-<span class="nc" id="L45">        return publisherRepository.save(existing);</span>
+<span class="fc" id="L42">        Publisher existing = findById(id);</span>
+<span class="fc" id="L43">        existing.setName(publisher.getName());</span>
+<span class="fc" id="L44">        existing.setCountry(publisher.getCountry());</span>
+<span class="fc" id="L45">        return publisherRepository.save(existing);</span>
     }
 
     @Override
     public void delete(UUID id) {
-<span class="nc" id="L50">        Publisher existing = findById(id);</span>
-<span class="nc" id="L51">        publisherRepository.delete(existing);</span>
-<span class="nc" id="L52">    }</span>
+<span class="fc" id="L50">        Publisher existing = findById(id);</span>
+<span class="fc" id="L51">        publisherRepository.delete(existing);</span>
+<span class="fc" id="L52">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
