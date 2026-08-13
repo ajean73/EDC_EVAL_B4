@@ -47,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException("Email already in use");
         }
 
+        // Le mot de passe est systématiquement stocké sous forme de hash.
         UserAccount user = new UserAccount();
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
@@ -61,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(AuthLoginRequest request) {
         try {
+            // Validation des identifiants via le provider Spring Security configuré.
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );

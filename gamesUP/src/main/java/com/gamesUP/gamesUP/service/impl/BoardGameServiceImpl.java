@@ -82,6 +82,7 @@ public class BoardGameServiceImpl implements BoardGameService {
     }
 
     private void applyUpdatableFields(BoardGame target, BoardGame source) {
+        // Seuls les champs éditables du catalogue sont copiés ici.
         target.setTitle(source.getTitle());
         target.setDescription(source.getDescription());
         target.setPrice(source.getPrice());
@@ -108,6 +109,7 @@ public class BoardGameServiceImpl implements BoardGameService {
             return new HashSet<>();
         }
 
+        // Validation d'intégrité: tous les IDs fournis doivent exister en base.
         Set<UUID> ids = authors.stream()
             .map(Author::getId)
             .collect(Collectors.toSet());

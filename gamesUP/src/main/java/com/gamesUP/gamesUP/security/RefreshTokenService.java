@@ -38,6 +38,7 @@ public class RefreshTokenService {
         String rawToken = generateRawToken();
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
+        // Seul le hash est persisté pour limiter l'impact d'une fuite de base.
         refreshToken.setTokenHash(hashToken(rawToken));
         refreshToken.setExpiresAt(LocalDateTime.now().plusNanos(toNanos(refreshExpirationMs)));
 
@@ -55,6 +56,7 @@ public class RefreshTokenService {
             throw new BadCredentialsException("Refresh token expired or revoked");
         }
 
+        // Rotation stricte: ancien token révoqué puis nouveau token émis.
         String nextRawToken = generateRawToken();
         String nextHash = hashToken(nextRawToken);
 
